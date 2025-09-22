@@ -1,0 +1,152 @@
+import ServiceModel from "../models/service.js";
+
+// 1. Create Service
+export const createService = async (req, res) => {
+  const { name, duration, price } = req.body;
+
+  try {
+    if (!name || !duration || !price) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
+    const newService = await ServiceModel.create({ name, duration, price });
+
+    res.status(201).json({
+      success: true,
+      message: "New service created successfully",
+      service: newService,
+    });
+  } catch (error) {
+    console.error("Error in createService:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 2. Get All Services
+export const getAllServices = async (req, res) => {
+  try {
+    const services = await ServiceModel.find();
+    res.status(200).json({ success: true, services });
+  } catch (error) {
+    console.error("Error in getAllServices:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 3. Get Service by ID
+export const getServiceById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const service = await ServiceModel.findById(id);
+
+    if (!service) {
+      return res.status(404).json({ success: false, message: "Service not found" });
+    }
+
+    res.status(200).json({ success: true, service });
+  } catch (error) {
+    console.error("Error in getServiceById:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 4. Update Service by ID
+export const updateServiceById = async (req, res) => {
+  const { id } = req.params;
+  const { name, duration, price } = req.body;
+
+  try {
+    const updatedService = await ServiceModel.findByIdAndUpdate(
+      id,
+      { name, duration, price },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedService) {
+      return res.status(404).json({ success: false, message: "Service not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Service updated successfully", service: updatedService });
+  } catch (error) {
+    console.error("Error in updateServiceById:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 5. Delete Service by ID
+export const deleteServiceById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedService = await ServiceModel.findByIdAndDelete(id);
+
+    if (!deletedService) {
+      return res.status(404).json({ success: false, message: "Service not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Service deleted successfully", service: deletedService });
+  } catch (error) {
+    console.error("Error in deleteServiceById:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 6. Delete All Services
+export const deleteAllServices = async (req, res) => {
+  try {
+    const result = await ServiceModel.deleteMany({});
+    res.status(200).json({
+      success: true,
+      message: "All services deleted successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error("Error in deleteAllServices:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// show All booking
+import BookingModel from "../models/booking.js";
+
+export const getAllBookings = async (req, res) => {
+  try {
+    const bookings = await BookingModel.find().populate("user").populate("service"); 
+
+    res.status(200).json({
+      success: true,
+      message: "All bookings fetched successfully",
+      bookings,
+    });
+  } catch (error) {
+    console.log("Error in getAllBookings controller:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+
+export const getCompletedBookings = async (req, res) => {
+  try {
+    const completedBookings = await BookingModel.find({ status: "completed" })
+      .populate("user", "name email")
+      .populate("service", "name price duration");
+
+    res.status(200).json({
+      success: true,
+      message: "Completed bookings fetched successfully",
+      data: completedBookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch completed bookings",
+      error: error.message,
+    });
+  }
+};
