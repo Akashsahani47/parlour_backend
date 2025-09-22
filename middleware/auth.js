@@ -32,7 +32,7 @@ export const isAuthenticated = async (req, res, next) => {
     }
 
     const decode = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded token:", decode);
+    //console.log("Decoded token:", decode);
 
     const user = await UserModel.findById(decode.userId); // <-- Check this key matches your token payload
 

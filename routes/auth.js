@@ -1,5 +1,5 @@
 import express from "express"
-import { login, logout, signup } from "../controllers/auth.js"
+import { checking, login, logout, signup } from "../controllers/auth.js"
 import { call } from "../config/Twilio.js";
 
 
@@ -9,5 +9,6 @@ router.post('/signup',signup)
 router.post('/login',login)
 router.post('/logout',logout)
 router.post("/call",call);
+router.get("/me",checking)
 
 export default router;

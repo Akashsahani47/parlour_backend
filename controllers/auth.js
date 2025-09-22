@@ -29,7 +29,7 @@ export const signup = async (req, res) => {
     }
     const User = await UserModel.findOne({ phoneNo });
     if (User) {
-      return res.status(400).json({ success: false, message: "Email ID already exists" });
+      return res.status(400).json({ success: false, message: "Phone Number is already exists" });
     }
 
     // Hash the password
@@ -85,17 +85,22 @@ export const login = async (req, res) => {
       }
     );
 
-    res.cookie("itoken", token, {
-      secure: true,
-      httpOnly: true,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
 
     res.status(200).json({
       success: true,
       message: "Login successful",
-      token,
+       token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     });
   } catch (error) {
     console.error("Error in login controller:", error.message);
@@ -113,6 +118,145 @@ export const logout = (req, res) => {
 };
 
 
+
+// export const checking = async (req, res) => {
+//   try {
+//     // Get token from multiple sources
+//     let token;
+    
+//     // Check cookies first
+//     if (req.cookies?.token) {
+//       token = req.cookies.token;
+//     } 
+//     // Check Authorization header
+//     else if (req.headers?.authorization && req.headers.authorization.startsWith('Bearer ')) {
+//       token = req.headers.authorization.split(' ')[1];
+//     }
+    
+//     if (!token) {
+//       return res.status(200).json({ user: null, message: "No authentication token" });
+//     }
+
+//     // Verify token
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+//     // Find user
+//     const user = await UserModel.findById(decoded.id).select("name email");
+    
+//     if (!user) {
+//       return res.status(200).json({ user: null, message: "User not found" });
+//     }
+
+//     // Return user data
+//     res.status(200).json({ 
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Auth check error:", error);
+    
+//     // Handle specific JWT errors
+//     if (error.name === 'JsonWebTokenError') {
+//       return res.status(200).json({ user: null, message: "Invalid token" });
+//     }
+//     if (error.name === 'TokenExpiredError') {
+//       return res.status(200).json({ user: null, message: "Token expired" });
+//     }
+    
+//     res.status(500).json({ user: null, message: "Internal server error" });
+//   }
+// }
+
+
+export const checking = async (req, res) => {
+  try {
+    // Disable caching
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    let token = null;
+
+    console.log('🔍 Checking for token in headers:');
+    console.log('Authorization header:', req.headers?.authorization);
+    console.log('All headers:', req.headers);
+
+    // Check Authorization header (case-insensitive)
+    const authHeader = req.headers?.authorization || req.headers?.Authorization;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+      console.log('✅ Token found in Authorization header');
+    } 
+    // Check cookies
+    else if (req.cookies?.token) {
+      token = req.cookies.token;
+      console.log('✅ Token found in cookies');
+    }
+    
+    console.log('📝 Final token extracted:', token ? `Present (length: ${token.length})` : 'MISSING');
+
+    if (!token) {
+      return res.status(200).json({ 
+        user: null, 
+        message: "No authentication token found in request headers",
+        receivedHeaders: req.headers // Debug info
+      });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('✅ Token decoded successfully for user ID:', decoded.userId || decoded.id);
+    
+    // Find user - adjust based on your token structure
+    const userId = decoded.userId || decoded.id;
+    const user = await UserModel.findById(userId).select("name email");
+    
+    if (!user) {
+      console.log('❌ User not found for ID:', userId);
+      return res.status(200).json({ 
+        user: null, 
+        message: "User not found",
+      });
+    }
+
+    console.log('✅ User found:', user.name);
+    
+    // Return user data
+    res.status(200).json({ 
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Auth check error:", error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(200).json({ 
+        user: null, 
+        message: "Invalid token",
+      });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(200).json({ 
+        user: null, 
+        message: "Token expired",
+      });
+    }
+    
+    res.status(500).json({ 
+      user: null, 
+      message: "Internal server error",
+    });
+  }
+}
 
 
 
