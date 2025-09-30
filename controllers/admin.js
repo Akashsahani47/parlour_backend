@@ -2,23 +2,40 @@ import ServiceModel from "../models/service.js";
 
 // 1. Create Service
 export const createService = async (req, res) => {
-  const { name, duration, price } = req.body;
-
   try {
-    if (!name || !duration || !price) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+    const { name, description, duration, price, category, image } = req.body;
+
+    // Basic validation
+    if (!name || !description || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, description, and price are required.",
+      });
     }
 
-    const newService = await ServiceModel.create({ name, duration, price });
+    const newService = new ServiceModel({
+      name: name.trim(),
+      description: description.trim(),
+      duration,
+      price,
+      category,
+      image,
+    });
 
-    res.status(201).json({
+    await newService.save();
+
+    return res.status(201).json({
       success: true,
-      message: "New service created successfully",
+      message: "Service created successfully",
       service: newService,
     });
   } catch (error) {
-    console.error("Error in createService:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("❌ Error in createService:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 

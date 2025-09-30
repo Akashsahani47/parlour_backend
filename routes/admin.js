@@ -14,11 +14,11 @@ import { checkAdmin, isAuthenticated } from "../middleware/auth.js";
 const router = express.Router(); 
 
 router.use(isAuthenticated);
-router.use(checkAdmin)
+//router.use(checkAdmin)
 
 
 router.post("/create", createService);
-router.get("/getAll", getAllServices);
+router.get("/getallService", getAllServices);
 router.get("/:id", getServiceById);
 router.put("/:id", updateServiceById);
 router.delete("/:id", deleteServiceById);
