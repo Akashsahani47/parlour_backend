@@ -1,13 +1,14 @@
+//import { call } from "../config/Twilio.js";
 import UserModel from "../models/auth.js";
 import Booking from "../models/booking.js";
 import Service from "../models/service.js";
 
 export const createBooking = async (req, res) => {
   try {
-    const { serviceId, startTime } = req.body;
+    const { service, startTime } = req.body;
     const userId = req.user._id;
 
-    if (!serviceId || !startTime) {
+    if (!service || !startTime) {
       return res.status(400).json({
         success: false,
         message: "serviceId and startTime are required",
@@ -15,8 +16,8 @@ export const createBooking = async (req, res) => {
     }
 
     // 🔍 Fetch the service
-    const service = await Service.findById(serviceId);
-    if (!service) {
+    const servic = await Service.findById(service);
+    if (!servic) {
       return res.status(404).json({ success: false, message: "Service not found" });
     }
 
@@ -31,7 +32,7 @@ export const createBooking = async (req, res) => {
 
     // 🔍 Check for overlapping booking
     const existingBooking = await Booking.findOne({
-      service: serviceId,
+      service: service,
       $or: [
         {
           startTime: { $lt: end },
@@ -51,11 +52,11 @@ export const createBooking = async (req, res) => {
     const booking = await Booking.create({
       user: userId,
       userPhone: user.phoneNo,
-      service: serviceId,
+      service: service,
       startTime: start,
       endTime: end,
     });
-
+        
     return res.status(201).json({
       success: true,
       message: "Booking created successfully",

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const serviceSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   description: { type: String, required: true, trim: true },
-  duration: { type: Number, default: 45 }, // minutes
+  duration: { type: Number, default: 59 }, // minutes
   price: { type: Number, required: true, min: 0 },
 
   // Extra fields you may need
