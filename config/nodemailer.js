@@ -1,7 +1,10 @@
 import dotenv from "dotenv";
 import nodemailer from "nodemailer"
-
 dotenv.config({ path: "./.env" }); // adjust path if needed
+import { Resend } from "resend"
+const resend  = new Resend(process.env.RESEND_API_KEY);
+
+
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
@@ -30,8 +33,8 @@ export const sendBookingEmail = async (booking) => {
     }
    
     // Build email template
-    const mailOptions = {
-  from: process.env.GMAILAPI,
+   await resend.emails.send({
+  from: "Asha Beauty Parlour <onboarding@resend.dev>",
   to: booking.user.email,
   subject: `✅ Appointment Confirmed - ${booking.service.name} | Asha Beauty Parlour`,
   html: `
@@ -195,12 +198,12 @@ export const sendBookingEmail = async (booking) => {
     </body>
     </html>
   `
-};
-    // Send the email
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", info.messageId);
+   });
+   
+    
 
     // Update status
+    console.log("Email send sussessfully and Booking confirmed")
     booking.status = "confirmed";
     await booking.save();
 
