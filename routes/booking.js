@@ -1,5 +1,5 @@
 import express from "express"
-import { createBooking, updateBooking } from "../controllers/booking.js";
+import { createBooking, getBookedSlots, updateBooking } from "../controllers/booking.js";
 import { createOrder, verifyPayment } from "../controllers/paymentController.js";
 import { isAuthenticated } from "../middleware/auth.js";
 
@@ -15,5 +15,5 @@ router.put('/updateBooking/:id', updateBooking);
 // Payment routes
 router.post('/payments/create-order', createOrder);
 router.post('/payments/verify-payment', verifyPayment);
-
+router.get('/getBookedSlots', getBookedSlots);
 export default router;
