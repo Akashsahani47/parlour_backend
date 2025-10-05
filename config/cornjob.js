@@ -1,7 +1,8 @@
 import cron from "node-cron";
-import { makeCall } from "./Twilio.js";
+import { makeCall, sendOwnerSMS } from "./Twilio.js";
 import BookingModel from "../models/booking.js";
 import { sendBookingEmail } from "./nodemailer.js";
+import { notifyOwnerSMS } from "./fastsms.js";
 
 // Run every minute
 cron.schedule("* * * * *", async () => {
@@ -21,7 +22,9 @@ cron.schedule("* * * * *", async () => {
       console.log(`📞 Found ${bookings.length} pending bookings.`);
       for (let booking of bookings) {
         //await makeCall(booking);
-        await sendBookingEmail(booking) // pass booking directly
+        //await sendOwnerSMS(booking)
+        await sendBookingEmail(booking)
+       //await notifyOwnerSMS(booking) // pass booking directly
       }
     } else {
       console.log("✅ No pending bookings right now....");

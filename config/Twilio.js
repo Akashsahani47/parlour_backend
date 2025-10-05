@@ -72,6 +72,51 @@ export const makeCall = async () => {
 };
 
 
+
+export const sendOwnerSMS = async () => {
+  try {
+    const booking = await Bookingmodel.findOne({ status: "pending" })
+      .populate("user")
+      .populate("service");
+
+    if (!booking) return { success: false, message: "No pending booking found." };
+
+    const ownerPhone = "+917903983741"; // ✅ Owner phone number in E.164 format
+    const userName = booking.user?.name || "Customer";
+    const userPhone = booking.userPhone || "N/A";
+    const serviceName = booking.service?.name || "Service";
+    const bookingDate = new Date(booking.startTime).toLocaleDateString("en-IN");
+    const bookingTime = new Date(booking.startTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+    const smsBody = `
+📅 *New Booking Confirmed*
+👤 Name: ${userName}
+📞 Phone: ${userPhone}
+💅 Service: ${serviceName}
+🕓 Time: ${bookingTime} on ${bookingDate}
+📍 Asha Beauty Parlour
+    `;
+
+    // Send SMS to owner
+    const message = await client.messages.create({
+      body: smsBody,
+      from: fromNumber, // your Twilio number
+      to: ownerPhone,   // owner number
+    });
+
+    console.log("✅ SMS sent to owner:", message.sid);
+
+    booking.status = "confirmed";
+    await booking.save();
+
+    return { success: true, message: "SMS sent to owner and booking confirmed." };
+
+  } catch (error) {
+    console.error("❌ Error sending SMS:", error);
+    return { success: false, message: error.message };
+  }
+};
+
 export const call = async (req, res) => {
   const result = await makeCall();
   if (result.success) {
