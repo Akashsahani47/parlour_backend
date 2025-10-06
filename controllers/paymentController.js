@@ -92,7 +92,7 @@ export const verifyPayment = async (req, res) => {
             razorpayOrderId: razorpay_order_id,
             razorpayPaymentId: razorpay_payment_id,
             razorpaySignature: razorpay_signature,
-            status: 'confirmed'
+            status: 'pending'
           },
           { new: true }
         ).populate('service').populate('user');
