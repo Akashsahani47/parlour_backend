@@ -13,7 +13,7 @@ export const createBooking = async (req, res) => {
       date,
       paymentMethod = "pay_after_service", 
       paymentStatus = "pending",
-      status = "confirmed"
+      status = "pending"
     } = req.body;
     const userId = req.user._id;
 
