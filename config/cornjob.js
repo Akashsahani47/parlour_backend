@@ -7,12 +7,14 @@ import BookingModel from "../models/booking.js";
 
 
 // 1️⃣ Every second — confirm pending bookings older than 1 min
-cron.schedule("* * * * * *", async () => {
+cron.schedule("* * * * * ", async () => {
   try {
-    console.log("⏳ Checking for pending bookings to confirm...");
+    console.log("⏳ Checking for pending bookings and completed bookings...");
 
+    const now = new Date();
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
 
+    // 1️⃣ Handle pending bookings older than 1 min (for notifications)
     const pendingBookings = await BookingModel.find({
       status: "pending",
       createdAt: { $lte: oneMinuteAgo }
@@ -21,24 +23,32 @@ cron.schedule("* * * * * *", async () => {
       .populate("service", "name");
 
     if (pendingBookings.length > 0) {
-      console.log(`📩 Found ${pendingBookings.length} pending bookings. Sending emails...`);
+      console.log(`📞 Found ${pendingBookings.length} pending bookings for notifications.`);
       for (let booking of pendingBookings) {
         await sendBookingEmail(booking);
-
-        await BookingModel.findByIdAndUpdate(booking._id, {
-          $set: { status: "confirmed" }
-        });
-
-        console.log(`✅ Booking confirmed: ${booking.service.name} for ${booking.user.name}`);
+        // Add other notifications if needed, e.g., SMS or owner alerts
       }
+    } else {
+      console.log("✅ No pending bookings for notifications right now.");
     }
+
+    // 2️⃣ Update bookings whose endTime has passed to 'completed'
+    const updateResult = await BookingModel.updateMany(
+      { endTime: { $lte: now }, status: { $in: ["pending", "confirmed"] } },
+      { $set: { status: "completed" } }
+    );
+
+    if (updateResult.modifiedCount > 0) {
+      console.log(`✅ Updated ${updateResult.modifiedCount} bookings to completed.`);
+    }
+
   } catch (err) {
-    console.error("❌ Error confirming pending bookings:", err.message);
+    console.error("❌ Cron job error:", err.message);
   }
 });
 
 // 2️⃣ Every minute — mark completed bookings
-cron.schedule("* * * * *", async () => {
+cron.schedule("* * * * ", async () => {
   try {
     console.log("🏁 Checking for bookings to mark as completed...");
     const now = new Date();
