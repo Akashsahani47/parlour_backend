@@ -4,7 +4,7 @@ import BookingModel from "../models/booking.js";
 
 
 // 🕒 Run every 1 minute
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("* * * * * *", async () => {
   try {
     console.log("⏳ Checking for pending bookings to confirm...");
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
