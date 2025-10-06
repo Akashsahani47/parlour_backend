@@ -6,14 +6,19 @@ import { notifyOwnerSMS } from "./fastsms.js";
 
 
 
+import cron from "node-cron";
+import BookingModel from "./models/booking.js";
+import { sendBookingEmail } from "./utils/email.js";
+
+// Run every minute
 cron.schedule("* * * * *", async () => {
   try {
-    console.log("⏳ Checking for pending bookings and completed bookings...");
+    console.log("⏳ Checking for pending and completed bookings...");
 
     const now = new Date();
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
 
-    // 1️⃣ Handle pending bookings older than 1 min (for notifications)
+    // 1️⃣ Find pending bookings older than 1 min
     const pendingBookings = await BookingModel.find({
       status: "pending",
       createdAt: { $lte: oneMinuteAgo }
@@ -21,24 +26,29 @@ cron.schedule("* * * * *", async () => {
       .populate("user", "name email")
       .populate("service", "name");
 
+    // 2️⃣ For each pending booking → send email and mark as confirmed
     if (pendingBookings.length > 0) {
-      console.log(`📞 Found ${pendingBookings.length} pending bookings for notifications.`);
+      console.log(`📩 Found ${pendingBookings.length} pending bookings. Sending emails...`);
       for (let booking of pendingBookings) {
         await sendBookingEmail(booking);
-        // Add other notifications if needed, e.g., SMS or owner alerts
+
+        await BookingModel.findByIdAndUpdate(booking._id, {
+          $set: { status: "confirmed" }
+        });
       }
+      console.log(`✅ ${pendingBookings.length} bookings marked as confirmed.`);
     } else {
-      console.log("✅ No pending bookings for notifications right now.");
+      console.log("✅ No pending bookings to confirm right now.");
     }
 
-    // 2️⃣ Update bookings whose endTime has passed to 'completed'
-    const updateResult = await BookingModel.updateMany(
+    // 3️⃣ Mark completed bookings (endTime passed)
+    const completedResult = await BookingModel.updateMany(
       { endTime: { $lte: now }, status: { $in: ["pending", "confirmed"] } },
       { $set: { status: "completed" } }
     );
 
-    if (updateResult.modifiedCount > 0) {
-      console.log(`✅ Updated ${updateResult.modifiedCount} bookings to completed.`);
+    if (completedResult.modifiedCount > 0) {
+      console.log(`🏁 ${completedResult.modifiedCount} bookings marked as completed.`);
     }
 
   } catch (err) {
