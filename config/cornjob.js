@@ -1,55 +1,40 @@
 import cron from "node-cron";
-import { makeCall, sendOwnerSMS } from "./Twilio.js";
 import { sendBookingEmail } from "./nodemailer.js";
-import { notifyOwnerSMS } from "./fastsms.js";
 import BookingModel from "../models/booking.js";
 
 
-
-// 1️⃣ Every second — confirm pending bookings older than 1 min
-cron.schedule("* * * * * ", async () => {
+// 🕒 Run every 1 minute
+cron.schedule("*/1 * * * *", async () => {
   try {
-    console.log("⏳ Checking for pending bookings and completed bookings...");
-
-    const now = new Date();
+    console.log("⏳ Checking for pending bookings to confirm...");
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
 
-    // 1️⃣ Handle pending bookings older than 1 min (for notifications)
+    // 1️⃣ Find and confirm pending bookings older than 1 minute
     const pendingBookings = await BookingModel.find({
       status: "pending",
-      createdAt: { $lte: oneMinuteAgo }
+      createdAt: { $lte: oneMinuteAgo },
     })
       .populate("user", "name email")
       .populate("service", "name");
 
     if (pendingBookings.length > 0) {
-      console.log(`📞 Found ${pendingBookings.length} pending bookings for notifications.`);
+      console.log(`📧 Found ${pendingBookings.length} pending bookings. Sending emails...`);
+
       for (let booking of pendingBookings) {
-        await sendBookingEmail(booking);
-        // Add other notifications if needed, e.g., SMS or owner alerts
+        try {
+          await sendBookingEmail(booking);
+          booking.status = "confirmed";
+          await booking.save();
+          console.log(`✅ Booking ${booking._id} marked as confirmed and email sent.`);
+        } catch (emailErr) {
+          console.error(`❌ Failed to send email for booking ${booking._id}:`, emailErr.message);
+        }
       }
     } else {
-      console.log("✅ No pending bookings for notifications right now.");
+      console.log("✅ No pending bookings right now.");
     }
 
-    // 2️⃣ Update bookings whose endTime has passed to 'completed'
-    const updateResult = await BookingModel.updateMany(
-      { endTime: { $lte: now }, status: { $in: ["pending", "confirmed"] } },
-      { $set: { status: "completed" } }
-    );
-
-    if (updateResult.modifiedCount > 0) {
-      console.log(`✅ Updated ${updateResult.modifiedCount} bookings to completed.`);
-    }
-
-  } catch (err) {
-    console.error("❌ Cron job error:", err.message);
-  }
-});
-
-// 2️⃣ Every minute — mark completed bookings
-cron.schedule("* * * * ", async () => {
-  try {
+    // 2️⃣ Mark bookings whose endTime has passed as completed
     console.log("🏁 Checking for bookings to mark as completed...");
     const now = new Date();
 
@@ -63,7 +48,8 @@ cron.schedule("* * * * ", async () => {
     } else {
       console.log("✅ No bookings to mark as completed right now.");
     }
+
   } catch (err) {
-    console.error("❌ Error completing bookings:", err.message);
+    console.error("❌ Cron job error:", err.message);
   }
 });
