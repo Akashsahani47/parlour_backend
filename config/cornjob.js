@@ -21,7 +21,7 @@ cron.schedule("* * * * * *", async () => {
       console.log(`📧 Found ${pendingBookings.length} pending bookings. Sending emails...`);
 
       for (let booking of pendingBookings) {
-        try {
+        try { 
           await sendBookingEmail(booking);
           booking.status = "confirmed";
           await booking.save();
