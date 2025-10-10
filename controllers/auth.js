@@ -1,6 +1,9 @@
+import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import UserModel from "../models/auth.js";
 import jwt from "jsonwebtoken";
+import axios from "axios";
+dotenv.config({ path: "/Users/akashkumar/Desktop/demo/Parlour/backend/.env" });
 //import transporter from "../config/nodemailer.js";
 
 
@@ -272,35 +275,41 @@ export const sendOTP = async (req, res) => {
 
     const OTP = Math.floor(100000 + Math.random() * 900000);
 
-    const mailOptions = {
-      from: process.env.SENDER_EMAIL,
-      to: user.email,
-      subject: "OTP for Password Reset",
-      html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>OTP Verification</h2>
-          <p>Your One-Time Password (OTP) is:</p>
-          <h3>${OTP}</h3>
-          <p>This OTP is valid for 5 minutes.</p>
-        </div>
-      `,
-    };
+    // Send email using Brevo API
+    const response = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: { name: "Asha Beauty Parlour", email: process.env.SENDER_EMAIL },
+        to: [{ email: user.email }],
+        subject: "OTP for Password Reset",
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif;">
+            <h2>OTP Verification</h2>
+            <p>Your One-Time Password (OTP) is:</p>
+            <h3>${OTP}</h3>
+            <p>This OTP is valid for 5 minutes.</p>
+          </div>
+        `,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": process.env.BREVO_PASS, // Brevo API key
+        },
+      }
+    );
 
-    await transporter.sendMail(mailOptions);
+    console.log("✅ OTP email sent:", response.data);
 
     // Save OTP and expiry to user
     user.otp = OTP;
-    user.otpexpiresAt = Date.now() + 5 * 60 * 1000;
+    user.otpexpiresAt = Date.now() + 5 * 60 * 1000; // 5 min expiry
     await user.save();
 
-    res.status(200).json({
-      success: true,
-      message: "OTP sent successfully",
-    });
-
+    res.status(200).json({ success: true, message: "OTP sent successfully" });
   } catch (error) {
-    console.log("Error in sendOTP controller:", error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("❌ Error in sendOTP controller:", error.response?.data || error.message);
+    res.status(500).json({ success: false, message: error.response?.data || error.message });
   }
 };
 

@@ -14,6 +14,6 @@ router.use(isAuthenticated);
 router.get("/me", getMyProfile);
 router.put("/update", updateProfile);
 router.put("/change-password", changePassword);
-router.get("/getallService", getAllServices);
-router.get("/getServiceById/:id",getServiceById)
+router.post("/getallService", getAllServices);
+router.post("/getServiceById/:id",getServiceById)
 export default router;
