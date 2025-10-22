@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import UserModel from "../models/auth.js";
 import jwt from "jsonwebtoken";
 import axios from "axios";
+import { type } from "os";
 dotenv.config({ path: "/Users/akashkumar/Desktop/demo/Parlour/backend/.env" });
 //import transporter from "../config/nodemailer.js";
 
@@ -81,7 +82,7 @@ export const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId: user._id, type: user.type },
       process.env.JWT_SECRET,
       {
         expiresIn: "7d",
@@ -102,7 +103,8 @@ export const login = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        type: user.type
       }
     });
   } catch (error) {
@@ -348,3 +350,125 @@ export const resetPass = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+
+// controllers/userController.js
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.userID;
+    const { name, email, phoneNo, currentPassword, newPassword } = req.body;
+
+    // Find user
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Check if email already exists (excluding current user)
+    if (email && email !== user.email) {
+      const existingUser = await UserModel.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already exists"
+        });
+      }
+    }
+
+    // Check if phone number already exists (excluding current user)
+    if (phoneNo && phoneNo !== user.phoneNo) {
+      const existingUser = await UserModel.findOne({ phoneNo });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number already exists"
+        });
+      }
+    }
+
+    // Update password if provided
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is required to set new password"
+        });
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is incorrect"
+        });
+      }
+
+      // Hash new password
+      const saltRounds = 10;
+      user.password = await bcrypt.hash(newPassword, saltRounds);
+    }
+
+    // Update other fields
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (phoneNo) user.phoneNo = phoneNo;
+
+    await user.save();
+
+    // Return user data without password
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phoneNo: user.phoneNo,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: userResponse
+    });
+
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+// export const getUserProfile = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+
+//     const user = await UserModel.findById(userId).select("-password -otp -otpexpiresAt");
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "User not found"
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       user
+//     });
+
+//   } catch (error) {
+//     console.error("Error fetching profile:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//       error: error.message
+//     });
+//   }
+// };

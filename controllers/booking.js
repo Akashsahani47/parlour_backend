@@ -86,6 +86,8 @@ export const createBooking = async (req, res) => {
   }
 };
 
+
+
 export const updateBooking = async (req, res) => {
   try {
     const { id } = req.params;
@@ -209,95 +211,30 @@ export const getBookedSlots = async (req, res) => {
 };
 
 
-// export const getBookedSlots = async (req, res) => {
-//   try {
-//     const { date, service, startTime, endTime } = req.query;
-    
-//     if (!date || !service) {
-//       return res.status(400).json({ 
-//         success: false,
-//         message: 'Date and service are required.' 
-//       });
-//     }
+export const getUserBookings = async (req, res) => {
+  try {
+    // ✅ 1. Get logged-in user ID
+    const userID = req.user._id;
 
-//     // Convert date string to start and end of day
-//     const startDate = new Date(date);
-//     const endDate = new Date(date);
-//     endDate.setDate(endDate.getDate() + 1);
+    // ✅ 2. Find all bookings of that user and populate related fields
+    const bookings = await BookingModel.find({ user: userID })
+      .populate("service")
+      .populate("user");
 
-//     console.log('🔍 Checking slot availability for:', {
-//       date,
-//       service,
-//       startTime,
-//       endTime
-//     });
+    // ✅ 3. Send success response
+    res.status(200).json({
+      success: true,
+      message: "User bookings fetched successfully",
+      bookings,
+    });
+  } catch (error) {
+    console.error("Error fetching user bookings:", error);
 
-//     // Find all bookings for that day and service
-//     const bookings = await BookingModel.find({
-//       service: service,
-//       startTime: { $gte: startDate, $lt: endDate },
-//       status: { $in: ['confirmed', 'pending'] }
-//     }).select('startTime endTime').lean();
-
-//     console.log('📅 Found bookings:', bookings.length);
-
-//     // If user passed a specific slot, check for overlap
-//     if (startTime && endTime) {
-//       const requestedStart = new Date(startTime);
-//       const requestedEnd = new Date(endTime);
-
-//       console.log('⏰ Checking specific slot:', {
-//         requestedStart: requestedStart.toISOString(),
-//         requestedEnd: requestedEnd.toISOString()
-//       });
-
-//       const isSlotTaken = bookings.some(b => {
-//         const bookedStart = new Date(b.startTime);
-//         const bookedEnd = new Date(b.endTime);
-        
-//         console.log('📊 Comparing with booked slot:', {
-//           bookedStart: bookedStart.toISOString(),
-//           bookedEnd: bookedEnd.toISOString(),
-//           overlap: requestedStart < bookedEnd && requestedEnd > bookedStart
-//         });
-        
-//         return requestedStart < bookedEnd && requestedEnd > bookedStart;
-//       });
-
-//       console.log('🎯 Slot availability result:', isSlotTaken ? 'TAKEN' : 'AVAILABLE');
-
-//       if (isSlotTaken) {
-//         return res.status(200).json({
-//           success: false,
-//           message: '❌ Slot is not available.',
-//           available: false
-//         });
-//       } else {
-//         return res.status(200).json({
-//           success: true,
-//           message: '✅ Slot is available.',
-//           available: true
-//         });
-//       }
-//     }
-
-//     // If no specific slot was requested, return all booked slots
-//     const bookedSlots = bookings.map(b => ({
-//       startTime: b.startTime,
-//       endTime: b.endTime
-//     }));
-
-//     return res.status(200).json({
-//       success: true,
-//       bookedSlots,
-//       message: '✅ Fetched booked slots successfully.'
-//     });
-
-//   } catch (error) {
-//     console.error('❌ Error checking slot:', error);
-//     res.status(500).json({ 
-//       success: false,
-//       message: 'Internal server error.' 
-//     });
-//   }
-// };
+    // ❌ 4. Handle any errors
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user bookings",
+      error: error.message,
+    });
+  }
+};

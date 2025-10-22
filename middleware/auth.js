@@ -57,7 +57,7 @@ export const  checkAdmin = async(req,res,next)=>{
     if(!req.user){
       return res.json({success:false,message:'Login First'})
     }
-    if(req.user.role !== "admin"){
+    if(req.user.type !== "admin"){
       return res.status(403).json({success:false,message:"Only Admin has Access"})
     }
 

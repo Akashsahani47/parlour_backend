@@ -14,17 +14,18 @@ import { checkAdmin, isAuthenticated } from "../middleware/auth.js";
 const router = express.Router(); 
 
 router.use(isAuthenticated);
-//router.use(checkAdmin)
+router.use(checkAdmin);
 
-
+// ✅ CORRECT ORDER: Specific routes FIRST
 router.post("/create", createService);
 router.get("/getallService", getAllServices);
+router.get("/bookings", getAllBookings); // ← MOVED UP
+router.get("/bookingCompleted", getCompletedBookings); // ← MOVED UP
+router.delete("/delete", deleteAllServices);
+
+// ✅ Parameter routes LAST
 router.get("/:id", getServiceById);
 router.put("/:id", updateServiceById);
 router.delete("/:id", deleteServiceById);
-router.delete("/delete", deleteAllServices);
-router.get("/bookings", getAllBookings); 
-router.get("/bookingCompleted", getCompletedBookings); 
-
 
 export default router;

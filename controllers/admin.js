@@ -1,3 +1,4 @@
+import BookingModel from "../models/booking.js";
 import ServiceModel from "../models/service.js";
 
 // 1. Create Service
@@ -126,25 +127,32 @@ export const deleteAllServices = async (req, res) => {
 
 
 // show All booking
-import BookingModel from "../models/booking.js";
-
 export const getAllBookings = async (req, res) => {
   try {
-    const bookings = await BookingModel.find().populate("user").populate("service"); 
+    console.log('Admin: Fetching all bookings...');
+
+    const bookings = await BookingModel.find()
+      .populate('user', 'name email')
+      .populate('service', 'name price')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
       message: "All bookings fetched successfully",
-      bookings,
+      bookings: bookings || [],
     });
   } catch (error) {
     console.log("Error in getAllBookings controller:", error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error while fetching bookings",
     });
   }
 };
+
+
+
+
 
 
 

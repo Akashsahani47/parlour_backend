@@ -9,9 +9,9 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
-console.log('Testing Razorpay Configuration...');
-    console.log('Key ID:', process.env.RAZORPAY_KEY_ID);
-    console.log('Key Secret Length:', process.env.RAZORPAY_KEY_SECRET?.length);
+// console.log('Testing Razorpay Configuration...');
+//     console.log('Key ID:', process.env.RAZORPAY_KEY_ID);
+//     console.log('Key Secret Length:', process.env.RAZORPAY_KEY_SECRET?.length);
     
 
 // Create Razorpay Order
