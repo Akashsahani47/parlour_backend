@@ -1,3 +1,4 @@
+import UserModel from "../models/auth.js";
 import BookingModel from "../models/booking.js";
 import ServiceModel from "../models/service.js";
 
@@ -172,6 +173,50 @@ export const getCompletedBookings = async (req, res) => {
       success: false,
       message: "Failed to fetch completed bookings",
       error: error.message,
+    });
+  }
+};
+
+
+export const getAllCustomers = async (req, res) => {
+  try {
+    const customers = await UserModel.find()
+      .select('name email phone createdAt')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      customers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+export const getCustomerById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const customer = await UserModel.findById(id)
+      .select('name email phone createdAt');
+    
+    const orders = await BookingModel.find({ user: id })
+      .populate('service', 'name price')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      customer,
+      orders,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
