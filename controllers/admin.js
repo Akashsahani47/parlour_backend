@@ -220,3 +220,185 @@ export const getCustomerById = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
+// Get all payments with filters
+export const getAllPayments = async (req, res) => {
+  try {
+    const { paymentMethod, paymentStatus, page = 1, limit = 10 } = req.query;
+    
+    let filter = {};
+    
+    // Apply filters if provided
+    if (paymentMethod && paymentMethod !== 'all') {
+      filter.paymentMethod = paymentMethod;
+    }
+    
+    if (paymentStatus && paymentStatus !== 'all') {
+      filter.paymentStatus = paymentStatus;
+    }
+
+    const skip = (page - 1) * limit;
+    
+    const payments = await BookingModel.find(filter)
+      .populate('user', 'name email phoneNo')
+      .populate('service', 'name price duration')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await BookingModel.countDocuments(filter);
+    
+    // Calculate total earnings
+    const totalEarnings = await BookingModel.aggregate([
+      { $match: { paymentStatus: 'paid' } },
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+
+    const earnings = totalEarnings.length > 0 ? totalEarnings[0].total : 0;
+
+    res.status(200).json({
+      success: true,
+      payments,
+      total,
+      earnings,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit)
+    });
+
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching payments data'
+    });
+  }
+};
+
+// Update payment status (mark as paid for offline payments)
+export const updatePaymentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentStatus } = req.body;
+
+    if (!paymentStatus) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment status is required'
+      });
+    }
+
+    const validStatuses = ['pending', 'paid', 'failed', 'refunded'];
+    if (!validStatuses.includes(paymentStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid payment status'
+      });
+    }
+
+    const payment = await BookingModel.findByIdAndUpdate(
+      id,
+      { paymentStatus },
+      { new: true }
+    ).populate('user', 'name email phoneNo')
+     .populate('service', 'name price duration');
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment status updated successfully',
+      payment
+    });
+
+  } catch (error) {
+    console.error('Error updating payment status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating payment status'
+    });
+  }
+};
+
+// Get payment statistics
+export const getPaymentStats = async (req, res) => {
+  try {
+    const stats = await BookingModel.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalEarnings: { 
+            $sum: { 
+              $cond: [{ $eq: ['$paymentStatus', 'paid'] }, '$totalAmount', 0] 
+            } 
+          },
+          totalBookings: { $sum: 1 },
+          paidBookings: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, 1, 0] }
+          },
+          pendingBookings: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'pending'] }, 1, 0] }
+          },
+          failedBookings: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'failed'] }, 1, 0] }
+          },
+          razorpayEarnings: {
+            $sum: { 
+              $cond: [
+                { $and: [
+                  { $eq: ['$paymentStatus', 'paid'] },
+                  { $eq: ['$paymentMethod', 'razorpay'] }
+                ]}, 
+                '$totalAmount', 
+                0 
+              ] 
+            }
+          },
+          offlineEarnings: {
+            $sum: { 
+              $cond: [
+                { $and: [
+                  { $eq: ['$paymentStatus', 'paid'] },
+                  { $eq: ['$paymentMethod', 'pay_after_service'] }
+                ]}, 
+                '$totalAmount', 
+                0 
+              ] 
+            }
+          }
+        }
+      }
+    ]);
+
+    const result = stats.length > 0 ? stats[0] : {
+      totalEarnings: 0,
+      totalBookings: 0,
+      paidBookings: 0,
+      pendingBookings: 0,
+      failedBookings: 0,
+      razorpayEarnings: 0,
+      offlineEarnings: 0
+    };
+
+    res.status(200).json({
+      success: true,
+      stats: result
+    });
+
+  } catch (error) {
+    console.error('Error fetching payment stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching payment statistics'
+    });
+  }
+};

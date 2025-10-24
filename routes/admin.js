@@ -10,6 +10,9 @@ import {
   getCompletedBookings,
   getAllCustomers,
   getCustomerById,
+  getAllPayments,
+  getPaymentStats,
+  updatePaymentStatus,
 } from "../controllers/admin.js";
 import { checkAdmin, isAuthenticated } from "../middleware/auth.js";
 
@@ -26,7 +29,11 @@ router.get("/bookings", getAllBookings); // ← MOVED UP
 router.get("/bookingCompleted", getCompletedBookings); // ← MOVED UP
 router.get("/customers", getAllCustomers);
 router.delete("/delete", deleteAllServices);
+router.get('/payments', getAllPayments);
+router.get('/payments/stats', getPaymentStats);
+
 // ✅ Parameter routes LAST
+router.put('/payments/:id/status', updatePaymentStatus);
 router.get('/customers/:id', getCustomerById);
 router.get("/:id", getServiceById);
 router.put("/:id", updateServiceById);
