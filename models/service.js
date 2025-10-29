@@ -7,7 +7,7 @@ const serviceSchema = new mongoose.Schema({
   price: { type: Number, required: true, min: 0 },
 
   // Extra fields you may need
-  category: { type: String, enum: ["Hair", "Skin", "Makeup", "Nails", "Other"], default: "Other" },
+  category: { type: String, enum: ["Haircut", "Skin", "Makeup", "Nails", "HairStyling","Eyebrow","Facial","Other"], default: "Other" },
   image: { type: String },   // service image (for UI)
   isActive: { type: Boolean, default: true }, // show/hide service
   createdAt: { type: Date, default: Date.now },

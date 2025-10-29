@@ -5,6 +5,7 @@ import authRouters from "./routes/auth.js";
 import adminRouters from "./routes/admin.js"
 import bookingRouters from "./routes/booking.js"
 import userRoutes from "./routes/user.js"
+import testimonialRoutes from "./routes/testimonial.js"
 import cookieParser from "cookie-parser";
 import cors from "cors"
 
@@ -36,6 +37,7 @@ server.use('/api/auth',authRouters);
 server.use('/api/admin',adminRouters);
 server.use('/api/booking',bookingRouters);
 server.use('/api/user',userRoutes)
+server.use('/api/testimonial',testimonialRoutes)
 
 import './config/cornjob.js'
 const PORT = process.env.PORT || 4000;
